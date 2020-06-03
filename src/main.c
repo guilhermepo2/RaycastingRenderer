@@ -7,19 +7,23 @@ SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 int IsGameRunning = FALSE;
 
+int PlayerX, PlayerY;
+
 // Functions
 int InitializeWindow();
 void DestroyWindow();
+void Begin();
 void ProcessInput();
+void Update();
 void Render();
 
 int main(int argc, char* argv[]) {
     IsGameRunning = InitializeWindow();
 
-    // Begin();
+    Begin();
     while(IsGameRunning) {
         ProcessInput();
-        // Update();
+        Update();
         Render();
     }
 
@@ -64,6 +68,11 @@ void DestroyWindow() {
     SDL_Quit();
 }
 
+void Begin() {
+    PlayerX = 0;
+    PlayerY = 0;
+}
+
 void ProcessInput() {
     SDL_Event event;
     SDL_PollEvent(&event);
@@ -82,12 +91,20 @@ void ProcessInput() {
     }
 }
 
+void Update() {
+    // Update stuff
+    PlayerX += 1;
+    PlayerY += 1;
+}
+
 void Render() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     
-    // TODO:
-    // Render all gameobjects for this frame
+    // TODO: Render all gameobjects for this frame
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    SDL_Rect Rect = { PlayerX, PlayerY, 32, 32 };
+    SDL_RenderFillRect(renderer, &Rect);
 
     SDL_RenderPresent(renderer);   
 }
