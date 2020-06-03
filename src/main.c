@@ -69,9 +69,16 @@ void ProcessInput() {
     SDL_PollEvent(&event);
 
     switch(event.type) {
-        case SDL_QUIT:
+        case SDL_QUIT: {
             IsGameRunning = FALSE;
             break;
+        }
+        case SDL_KEYDOWN: {
+            if(event.key.keysym.sym == SDLK_ESCAPE) {
+                IsGameRunning = FALSE;
+                break;
+            }
+        }
     }
 }
 
