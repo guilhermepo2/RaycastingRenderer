@@ -3,6 +3,9 @@
 #include <limits.h>
 #include <math.h>
 #include "constants.h"
+#include "player.h"
+#include "ray.h"
+#include "mathaux.h"
 
 const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1, 1, 1, 1},
@@ -20,34 +23,8 @@ const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 };
 
-struct Player {
-    float x;
-    float y;
-    float width;
-    float height;
-
-    int turnDirection; // -1 for left, 1 for right
-    int walkDirection; // -1 for back, 1 for front
-
-    float rotationAngle;
-    float walkSpeed;
-    float turnSpeed;
-} player;
-
-struct Ray {
-    float rayAngle;
-    float wallHitX;
-    float wallHitY;
-    float distance;
-    int wasHitVertical;
-
-    int isRayFacingUp;
-    int isRayFacingDown;
-    int isRayFacingRight;
-    int isRayFacingLeft;
-
-    int wallHitContent;
-} rays[NUM_RAYS];
+Player player;
+Ray rays[NUM_RAYS];
 
 // Variables
 SDL_Window* window = NULL;
@@ -65,7 +42,6 @@ void Update();
 void MovePlayer(float DeltaTime);
 void CastAllRays();
 int MapHasWallAt(float x, float y);
-float DistanceBetweenPoints(float x1, float x2, float y1, float y2);
 
 void Render();
 void RenderMap();
@@ -124,7 +100,6 @@ void DestroyWindow() {
 }
 
 void Begin() {
-    
     // Setting up Player
     player.x = WINDOW_WIDTH / 2;
     player.y = WINDOW_HEIGHT / 2;
@@ -214,20 +189,6 @@ void Update() {
     // Always remember to update game objects as a function of delta time
     MovePlayer(DeltaTime);
     CastAllRays();
-}
-
-float NormalizeAngle(float angle) {
-    angle = remainder(angle, TWO_PI);
-    
-    if(angle < 0) {
-        angle = TWO_PI + angle;
-    }
-
-    return angle;
-}
-
-float DistanceBetweenPoints(float x1, float x2, float y1, float y2) {
-    return sqrt( ((x2 - x1) * (x2 - x1)) + ((y2 - y1) * (y2 - y1)) );
 }
 
 void CastRay(float rayAngle, int rayID) {
