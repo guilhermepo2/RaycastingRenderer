@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
+#include <limits.h>
 #include <math.h>
 #include "constants.h"
 
@@ -33,6 +34,21 @@ struct Player {
     float turnSpeed;
 } player;
 
+struct Ray {
+    float rayAngle;
+    float wallHitX;
+    float wallHitY;
+    float distance;
+    int wasHitVertical;
+
+    int isRayFacingUp;
+    int isRayFacingDown;
+    int isRayFacingRight;
+    int isRayFacingLeft;
+
+    int wallHitContent;
+} rays[NUM_RAYS];
+
 // Variables
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -47,6 +63,9 @@ void ProcessInput();
 
 void Update();
 void MovePlayer(float DeltaTime);
+void CastAllRays();
+int MapHasWallAt(float x, float y);
+float DistanceBetweenPoints(float x1, float x2, float y1, float y2);
 
 void Render();
 void RenderMap();
@@ -194,6 +213,156 @@ void Update() {
 
     // Always remember to update game objects as a function of delta time
     MovePlayer(DeltaTime);
+    CastAllRays();
+}
+
+float NormalizeAngle(float angle) {
+    angle = remainder(angle, TWO_PI);
+    
+    if(angle < 0) {
+        angle = TWO_PI + angle;
+    }
+
+    return angle;
+}
+
+float DistanceBetweenPoints(float x1, float x2, float y1, float y2) {
+    return sqrt( ((x2 - x1) * (x2 - x1)) + ((y2 - y1) * (y2 - y1)) );
+}
+
+void CastRay(float rayAngle, int rayID) {
+    rayAngle = NormalizeAngle(rayAngle);
+
+    int isRayFacingDown = (rayAngle > 0 && rayAngle < PI);
+    int isRayFacingUp = !isRayFacingDown;
+
+    int isRayFacingRight = (rayAngle < 0.5 * PI || rayAngle > 1.5 * PI);
+    int isRayFacingLeft = !isRayFacingRight;
+
+    float xintercept, yintercept;
+    float xstep, ystep;
+
+    // /////////////////////////////////
+    // Horizontal Intersection Part
+    // /////////////////////////////////
+    int foundHorizontalWallHit = FALSE;
+    float horizontalWallHitX = 0;
+    float horizontalWallHitY = 0;
+    int horizontalWallContent = 0;
+
+    // Find the y-coordinate of the closest horizontal grid intersection
+    yintercept = floor(player.y / TILE_SIZE) * TILE_SIZE;
+    yintercept += isRayFacingDown ? TILE_SIZE : 0;
+
+    // Find the x-coordinate of the closest horizontal grid intersection
+    xintercept = player.x + (yintercept - player.y) / tan(rayAngle);
+
+    // Calculate increments xstep and ystep
+    ystep = TILE_SIZE;
+    ystep *= isRayFacingUp ? -1 : 1;
+
+    xstep = TILE_SIZE / tan(rayAngle);
+    xstep *= (isRayFacingLeft && xstep > 0) ? -1 : 1;
+    xstep *= (isRayFacingRight && xstep < 0) ? -1 : 1;
+
+    float nextHorizontalTouchX = xintercept;
+    float nextHorizontalTouchY = yintercept;
+
+    // Increment xstep and ystep until we find a wall
+    while(nextHorizontalTouchX > 0 && nextHorizontalTouchX < WINDOW_WIDTH && nextHorizontalTouchY > 0 && nextHorizontalTouchY < WINDOW_HEIGHT) {
+        float xToCheck = nextHorizontalTouchX;
+        float yToCheck = nextHorizontalTouchY + (isRayFacingUp ? -1 : 0);
+
+        if(MapHasWallAt(xToCheck, yToCheck)) {
+            // found a wall hit
+            horizontalWallHitX = nextHorizontalTouchX;
+            horizontalWallHitY = nextHorizontalTouchY;
+            horizontalWallContent = map[(int)floor(yToCheck / TILE_SIZE)][(int)floor(xToCheck / TILE_SIZE)];
+            foundHorizontalWallHit = TRUE;
+            break;
+        } else {
+            nextHorizontalTouchX += xstep;
+            nextHorizontalTouchY += ystep;
+        }
+    }
+
+    // /////////////////////////////////
+    // Vertical Intersection Part
+    // /////////////////////////////////
+    int foundVerticalWallHit = FALSE;
+    float verticalWallHitX = 0;
+    float verticalWallHitY = 0;
+    int verticalWallContent = 0;
+
+    // Find the x-coordinate of the closest horizontal grid intersection
+    xintercept = floor(player.x / TILE_SIZE) * TILE_SIZE;
+    xintercept += isRayFacingRight ? TILE_SIZE : 0;
+
+    // Find the y-coordinate of the closest horizontal grid intersection
+    yintercept = player.y + (xintercept - player.x) * tan(rayAngle);
+
+    // Calculate increments xstep and ystep
+    xstep = TILE_SIZE;
+    xstep *= isRayFacingLeft ? -1 : 1;
+
+    ystep = TILE_SIZE * tan(rayAngle);
+    ystep *= (isRayFacingUp && ystep > 0) ? -1 : 1;
+    ystep *= (isRayFacingDown && ystep < 0) ? -1 : 1;
+
+    float nextVerticalTouchX = xintercept;
+    float nextVerticalTouchY = yintercept;
+
+    // Increment xstep and ystep until we find a wall
+    while(nextVerticalTouchX > 0 && nextVerticalTouchX < WINDOW_WIDTH && nextVerticalTouchY > 0 && nextVerticalTouchY < WINDOW_HEIGHT) {
+        float xToCheck = nextVerticalTouchX + (isRayFacingLeft ? -1 : 0);
+        float yToCheck = nextVerticalTouchY;
+
+        if(MapHasWallAt(xToCheck, yToCheck)) {
+            // found a wall hit
+            verticalWallHitX = nextVerticalTouchX;
+            verticalWallHitY = nextVerticalTouchY;
+            verticalWallContent = map[(int)floor(yToCheck / TILE_SIZE)][(int)floor(xToCheck / TILE_SIZE)];
+            foundVerticalWallHit = TRUE;
+            break;
+        } else {
+            nextVerticalTouchX += xstep;
+            nextVerticalTouchY += ystep;
+        }
+    }
+
+    // Calculate both horizontal and vertical hit distance and choose the smallest one
+    float horizontalHitDistance = foundHorizontalWallHit ? DistanceBetweenPoints(player.x, player.y, horizontalWallHitX, horizontalWallHitY) : INT_MAX; 
+    float verticalHitDistance = foundVerticalWallHit ? DistanceBetweenPoints(player.x, player.y, verticalWallHitX, verticalWallHitY) : INT_MAX;
+
+    if(verticalHitDistance < horizontalHitDistance) {
+        rays[rayID].distance = verticalHitDistance;
+        rays[rayID].wallHitX = verticalWallHitX;
+        rays[rayID].wallHitY = verticalWallHitY;
+        rays[rayID].wallHitContent = verticalWallContent;
+        rays[rayID].wasHitVertical = TRUE;
+    } else {
+        rays[rayID].distance = horizontalHitDistance;
+        rays[rayID].wallHitX = horizontalWallHitX;
+        rays[rayID].wallHitY = horizontalWallHitY;
+        rays[rayID].wallHitContent = horizontalWallContent;
+        rays[rayID].wasHitVertical = FALSE;
+    }
+
+    rays[rayID].rayAngle = rayAngle;
+    rays[rayID].isRayFacingDown = isRayFacingDown;
+    rays[rayID].isRayFacingLeft = isRayFacingLeft;
+    rays[rayID].isRayFacingUp = isRayFacingUp;
+    rays[rayID].isRayFacingRight = isRayFacingRight;
+}
+
+void CastAllRays() {
+    // start first ray subtracting half of our FOV
+    float rayAngle = player.rotationAngle - (FOV_ANGLE / 2);
+
+    for(int rayID = 0; rayID < NUM_RAYS; rayID++) {
+        CastRay(rayAngle, rayID);
+        rayAngle += (FOV_ANGLE / NUM_RAYS);
+    }
 }
 
 int MapHasWallAt(float x, float y) {
@@ -227,7 +396,7 @@ void Render() {
     // TODO: render game objects here.
     RenderMap();
     RenderPlayer();
-    // TODO: RenderRays();
+    RenderRays();
 
     SDL_RenderPresent(renderer);   
 }
@@ -262,4 +431,17 @@ void RenderPlayer() {
 
     SDL_RenderFillRect(renderer, &playerRect);
     SDL_RenderDrawLine(renderer, player.x * MINIMAP_SCALE_FACTOR, player.y * MINIMAP_SCALE_FACTOR, player.x + cos(player.rotationAngle) * 45 * MINIMAP_SCALE_FACTOR, player.y + sin(player.rotationAngle) * 45 * MINIMAP_SCALE_FACTOR);
+}
+
+void RenderRays() {
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+
+    for(int i = 0; i < NUM_RAYS; i++) {
+        SDL_RenderDrawLine(renderer, 
+        player.x * MINIMAP_SCALE_FACTOR, 
+        player.y * MINIMAP_SCALE_FACTOR, 
+        rays[i].wallHitX * MINIMAP_SCALE_FACTOR, 
+        rays[i].wallHitY * MINIMAP_SCALE_FACTOR
+        );
+    }
 }
