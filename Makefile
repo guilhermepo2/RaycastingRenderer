@@ -2,7 +2,7 @@ CC = gcc
 SOURCE = ./src/main.c
 OUTPUT = raycast
 WINDOWS_LINKER_FLAGS = -lmingw32 -lSDL2main
-SDL_LINKER_FLAGS = -lSDL2
+SDL_LINKER_FLAGS = -lSDL2 -lm
 
 # not using include and lib anymore, but I still want to go back and have SDL2 on the repo
 SDL_INCLUDE = "./src/thirdparty/SDL2-2.0.12/i686-w64-mingw32/include"
