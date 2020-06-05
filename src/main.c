@@ -26,12 +26,16 @@ const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
 Player player;
 Ray rays[NUM_RAYS];
 
+// ////////////////////////////////////
 // Variables
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
 int IsGameRunning = FALSE;
 int TicksLastFrame = 0;
+Uint32* colorBuffer = NULL;
+SDL_Texture* colorBufferTexture = NULL;
 
+// ////////////////////////////////////
 // Functions
 int InitializeWindow();
 void DestroyWindow();
@@ -44,6 +48,7 @@ void CastAllRays();
 int MapHasWallAt(float x, float y);
 
 void Render();
+void ClearColorBuffer(Uint32 color);
 void RenderMap();
 void RenderPlayer();
 void RenderRays();
@@ -94,6 +99,7 @@ int InitializeWindow() {
 }
 
 void DestroyWindow() {
+    free(colorBuffer);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -111,6 +117,18 @@ void Begin() {
 
     player.walkSpeed = 200;
     player.turnSpeed = 90 * (PI / 180);
+
+    // allocating the total amount of memory to hold our color buffer
+    colorBuffer = (Uint32*) malloc( sizeof(Uint32) * (Uint32)WINDOW_WIDTH * (Uint32)WINDOW_HEIGHT );
+
+    // create an sdl texture to display the color buffer
+    colorBufferTexture = SDL_CreateTexture(
+        renderer,
+        SDL_PIXELFORMAT_ARGB8888,
+        SDL_TEXTUREACCESS_STREAMING,
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT
+    );
 }
 
 void ProcessInput() {
@@ -350,16 +368,55 @@ void MovePlayer(float DeltaTime) {
     }
 }
 
+void RenderColorBuffer() {
+    SDL_UpdateTexture(colorBufferTexture, NULL, colorBuffer, (int)(Uint32)WINDOW_WIDTH * sizeof(Uint32));
+    SDL_RenderCopy(renderer, colorBufferTexture, NULL, NULL);
+}
+
+void Generate3DProjection() {
+    for(int i = 0; i < NUM_RAYS; i++) {
+        // getting the correct distance
+        float perpendicularDistance = rays[i].distance * cos(rays[i].rayAngle - player.rotationAngle);
+
+        float distanceToProjectionPlane = (WINDOW_WIDTH / 2) / tan(FOV_ANGLE / 2);
+        float projectedWallHeight = (TILE_SIZE / perpendicularDistance) * distanceToProjectionPlane;
+        int wallStripHeight = (int)projectedWallHeight;
+
+        int wallTopPixel = (WINDOW_HEIGHT / 2) - (wallStripHeight / 2);
+        wallTopPixel = (wallTopPixel < 0) ? 0 : wallTopPixel;
+        int wallBottomPixel = (WINDOW_HEIGHT / 2) + (wallStripHeight / 2);
+        wallBottomPixel = (wallBottomPixel > WINDOW_HEIGHT) ? WINDOW_HEIGHT : wallBottomPixel;
+
+        // Render the wall from wallTopPixel to WallBottomPixel
+        for(int y = wallTopPixel; y < wallBottomPixel; y++) {
+            colorBuffer [(WINDOW_WIDTH * y) + i] = rays[i].wasHitVertical ? 0xFFFFFFFF : 0xFFCCCCCC;
+        }
+    }
+}
+
 void Render() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     
-    // TODO: render game objects here.
+    Generate3DProjection();
+
+    RenderColorBuffer();
+    ClearColorBuffer(0xFF000000);
+
+    // display the minimap
     RenderMap();
     RenderPlayer();
     RenderRays();
 
     SDL_RenderPresent(renderer);   
+}
+
+void ClearColorBuffer(Uint32 color) {
+    for(int x = 0; x < WINDOW_WIDTH; x++) {
+        for(int y = 0; y < WINDOW_HEIGHT; y++) {
+            colorBuffer[(WINDOW_WIDTH *  y) + x] = color;
+        }
+    }
 }
 
 void RenderMap() {
