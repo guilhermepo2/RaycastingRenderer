@@ -45,6 +45,7 @@ void ProcessInput();
 void Update();
 void MovePlayer(float DeltaTime);
 void CastAllRays();
+void CastRay(float angle, int rayID);
 int MapHasWallAt(float x, float y);
 
 void Render();
@@ -109,12 +110,11 @@ void Begin() {
     // Setting up Player
     player.x = WINDOW_WIDTH / 2;
     player.y = WINDOW_HEIGHT / 2;
-    player.width = 5;
-    player.height = 5;
+    player.width = 1;
+    player.height = 1;
     player.turnDirection = 0;
     player.walkDirection = 0;
     player.rotationAngle = PI / 2;
-
     player.walkSpeed = 200;
     player.turnSpeed = 90 * (PI / 180);
 
@@ -209,8 +209,22 @@ void Update() {
     CastAllRays();
 }
 
+void CastAllRays() {
+    float rayAngle = player.rotationAngle - (FOV_ANGLE / 2);
+
+    for(int rayID = 0; rayID < NUM_RAYS; rayID++) {
+        CastRay(rayAngle, rayID);
+        rayAngle += (FOV_ANGLE / NUM_RAYS);
+
+        if(rays[rayID].wallHitY > (WINDOW_HEIGHT - TILE_SIZE)) {
+            printf("something wrong here - rayID: %d - rayAngle: %.2f\n", rayID, rayAngle);
+        }
+    }
+}
+
 void CastRay(float rayAngle, int rayID) {
     rayAngle = NormalizeAngle(rayAngle);
+
 
     int isRayFacingDown = (rayAngle > 0 && rayAngle < PI);
     int isRayFacingUp = !isRayFacingDown;
@@ -334,16 +348,6 @@ void CastRay(float rayAngle, int rayID) {
     rays[rayID].isRayFacingRight = isRayFacingRight;
 }
 
-void CastAllRays() {
-    // start first ray subtracting half of our FOV
-    float rayAngle = player.rotationAngle - (FOV_ANGLE / 2);
-
-    for(int rayID = 0; rayID < NUM_RAYS; rayID++) {
-        CastRay(rayAngle, rayID);
-        rayAngle += (FOV_ANGLE / NUM_RAYS);
-    }
-}
-
 int MapHasWallAt(float x, float y) {
     if(x < 0 || x > WINDOW_WIDTH || y < 0 || y > WINDOW_HEIGHT) {
         return TRUE;
@@ -398,10 +402,10 @@ void Render() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     
-    Generate3DProjection();
+    // Generate3DProjection();
 
-    RenderColorBuffer();
-    ClearColorBuffer(0xFF000000);
+    // RenderColorBuffer();
+    // ClearColorBuffer(0xFF000000);
 
     // display the minimap
     RenderMap();
@@ -432,7 +436,8 @@ void RenderMap() {
                 tileY * MINIMAP_SCALE_FACTOR,
                 TILE_SIZE * MINIMAP_SCALE_FACTOR,
                 TILE_SIZE * MINIMAP_SCALE_FACTOR
-            }; 
+            };
+
             SDL_RenderFillRect(renderer, &mapTileRect);
         }
     }
@@ -448,18 +453,26 @@ void RenderPlayer() {
     };
 
     SDL_RenderFillRect(renderer, &playerRect);
-    SDL_RenderDrawLine(renderer, player.x * MINIMAP_SCALE_FACTOR, player.y * MINIMAP_SCALE_FACTOR, player.x + cos(player.rotationAngle) * 45 * MINIMAP_SCALE_FACTOR, player.y + sin(player.rotationAngle) * 45 * MINIMAP_SCALE_FACTOR);
+
+    SDL_RenderDrawLine(
+        renderer, 
+        player.x * MINIMAP_SCALE_FACTOR, 
+        player.y * MINIMAP_SCALE_FACTOR, 
+        player.x + cos(player.rotationAngle) * 40 * MINIMAP_SCALE_FACTOR, 
+        player.y + sin(player.rotationAngle) * 40 * MINIMAP_SCALE_FACTOR
+        );
 }
 
 void RenderRays() {
-    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 
     for(int i = 0; i < NUM_RAYS; i++) {
-        SDL_RenderDrawLine(renderer, 
-        player.x * MINIMAP_SCALE_FACTOR, 
-        player.y * MINIMAP_SCALE_FACTOR, 
-        rays[i].wallHitX * MINIMAP_SCALE_FACTOR, 
-        rays[i].wallHitY * MINIMAP_SCALE_FACTOR
+        SDL_RenderDrawLine(
+            renderer, 
+            player.x * MINIMAP_SCALE_FACTOR, 
+            player.y * MINIMAP_SCALE_FACTOR, 
+            rays[i].wallHitX * MINIMAP_SCALE_FACTOR, 
+            rays[i].wallHitY * MINIMAP_SCALE_FACTOR
         );
     }
 }
