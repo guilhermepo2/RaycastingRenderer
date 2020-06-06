@@ -113,10 +113,8 @@ void DestroyWindow() {
 
 void Begin() {
     // Setting up Player
-    player.x = WINDOW_WIDTH / 2;
-    player.y = WINDOW_HEIGHT / 2;
-    player.width = 1;
-    player.height = 1;
+    SetPlayerPosition(&player, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+    SetPlayerSize(&player, 1, 1);
     player.turnDirection = 0;
     player.walkDirection = 0;
     player.rotationAngle = PI / 2;
@@ -258,11 +256,11 @@ void CastRay(float rayAngle, int rayID) {
     int horizontalWallContent = 0;
 
     // Find the y-coordinate of the closest horizontal grid intersection
-    yintercept = floor(player.y / TILE_SIZE) * TILE_SIZE;
+    yintercept = floor(player.position.y / TILE_SIZE) * TILE_SIZE;
     yintercept += isRayFacingDown ? TILE_SIZE : 0;
 
     // Find the x-coordinate of the closest horizontal grid intersection
-    xintercept = player.x + (yintercept - player.y) / tan(rayAngle);
+    xintercept = player.position.x + (yintercept - player.position.y) / tan(rayAngle);
 
     // Calculate increments xstep and ystep
     ystep = TILE_SIZE;
@@ -302,11 +300,11 @@ void CastRay(float rayAngle, int rayID) {
     int verticalWallContent = 0;
 
     // Find the x-coordinate of the closest horizontal grid intersection
-    xintercept = floor(player.x / TILE_SIZE) * TILE_SIZE;
+    xintercept = floor(player.position.x / TILE_SIZE) * TILE_SIZE;
     xintercept += isRayFacingRight ? TILE_SIZE : 0;
 
     // Find the y-coordinate of the closest horizontal grid intersection
-    yintercept = player.y + (xintercept - player.x) * tan(rayAngle);
+    yintercept = player.position.y + (xintercept - player.position.x) * tan(rayAngle);
 
     // Calculate increments xstep and ystep
     xstep = TILE_SIZE;
@@ -338,8 +336,8 @@ void CastRay(float rayAngle, int rayID) {
     }
 
     // Calculate both horizontal and vertical hit distance and choose the smallest one
-    float horizontalHitDistance = foundHorizontalWallHit ? DistanceBetweenPoints(player.x, player.y, horizontalWallHitX, horizontalWallHitY) : INT_MAX; 
-    float verticalHitDistance = foundVerticalWallHit ? DistanceBetweenPoints(player.x, player.y, verticalWallHitX, verticalWallHitY) : INT_MAX;
+    float horizontalHitDistance = foundHorizontalWallHit ? DistanceBetweenPoints(player.position.x, player.position.y, horizontalWallHitX, horizontalWallHitY) : INT_MAX; 
+    float verticalHitDistance = foundVerticalWallHit ? DistanceBetweenPoints(player.position.x, player.position.y, verticalWallHitX, verticalWallHitY) : INT_MAX;
 
     if(verticalHitDistance < horizontalHitDistance) {
         rays[rayID].distance = verticalHitDistance;
@@ -377,12 +375,11 @@ void MovePlayer(float DeltaTime) {
     player.rotationAngle += player.turnDirection * player.turnSpeed * DeltaTime;
     float moveStep = player.walkDirection * player.walkSpeed * DeltaTime;
 
-    float newPlayerX = player.x + cos(player.rotationAngle) * moveStep;
-    float newPlayerY = player.y + sin(player.rotationAngle) * moveStep;
+    float newPlayerX = player.position.x + cos(player.rotationAngle) * moveStep;
+    float newPlayerY = player.position.y + sin(player.rotationAngle) * moveStep;
 
     if(!MapHasWallAt(newPlayerX, newPlayerY)) {
-        player.x = newPlayerX;
-        player.y = newPlayerY;
+        SetPlayerPosition(&player, newPlayerX, newPlayerY);
     }
 }
 
@@ -486,10 +483,10 @@ void RenderMap() {
 void RenderPlayer() {
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     SDL_Rect playerRect = {
-        player.x * MINIMAP_SCALE_FACTOR,
-        player.y * MINIMAP_SCALE_FACTOR,
-        player.width * MINIMAP_SCALE_FACTOR,
-        player.height * MINIMAP_SCALE_FACTOR
+        player.position.x * MINIMAP_SCALE_FACTOR,
+        player.position.y * MINIMAP_SCALE_FACTOR,
+        player.size.x * MINIMAP_SCALE_FACTOR,
+        player.size.y * MINIMAP_SCALE_FACTOR
     };
 
     SDL_RenderFillRect(renderer, &playerRect);
@@ -501,8 +498,8 @@ void RenderRays() {
     for(int i = 0; i < NUM_RAYS; i++) {
         SDL_RenderDrawLine(
             renderer, 
-            player.x * MINIMAP_SCALE_FACTOR, 
-            player.y * MINIMAP_SCALE_FACTOR, 
+            player.position.x * MINIMAP_SCALE_FACTOR, 
+            player.position.y * MINIMAP_SCALE_FACTOR, 
             rays[i].wallHitX * MINIMAP_SCALE_FACTOR, 
             rays[i].wallHitY * MINIMAP_SCALE_FACTOR
         );

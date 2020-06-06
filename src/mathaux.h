@@ -4,9 +4,9 @@
 typedef struct Point {
     float x;
     float y;
-} point;
+} Point;
 
-float DistanceBetweenPointsP(point p1, point p2) {
+float DistanceBetweenPointsP(Point p1, Point p2) {
     return sqrt( ((p2.x - p1.x) * (p2.x - p1.x)) + ((p2.y - p1.y) * (p2.y - p1.y)));
 }
 
