@@ -1,3 +1,6 @@
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
 #define FALSE 0
 #define TRUE 1
 
@@ -31,3 +34,6 @@
 #define BLUESTONE_TEXTURE_FILEPATH "./images/bluestone.png"
 #define WOOD_TEXTURE_FILEPATH "./images/wood.png"
 #define EAGLE_TEXTURE_FILEPATH "./images/eagle.png"
+#define NUM_TEXTURES 8
+
+#endif
