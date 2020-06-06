@@ -25,17 +25,6 @@ const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 5, 5, 5}
 };
 
-const char* allTextures[NUM_TEXTURES] = {
-    REDBRICK_TEXTURE_FILEPATH,
-    PURPLESTONE_TEXTURE_FILEPATH,
-    MOSSYSTONE_TEXTURE_FILEPATH,
-    GRAYSTONE_TEXTURE_FILEPATH,
-    COLORSTONE_TEXTURE_FILEPATH,
-    BLUESTONE_TEXTURE_FILEPATH,
-    WOOD_TEXTURE_FILEPATH,
-    EAGLE_TEXTURE_FILEPATH
-};
-
 Player player;
 Ray rays[NUM_RAYS];
 
@@ -47,11 +36,16 @@ int IsGameRunning = FALSE;
 int TicksLastFrame = 0;
 Uint32* colorBuffer = NULL;
 SDL_Texture* colorBufferTexture = NULL;
+float TimeSinceBeginning = 0;
 
 // Wall textures
 // TODO: Multiple wall textures loading from png files
 Uint32* wallTexture[NUM_TEXTURES];
 upng_t* pngTexture;
+
+// weapon?
+upng_t* pistolSprite;
+Uint32* pistolTexture;
 
 // ////////////////////////////////////
 // Functions
@@ -147,8 +141,8 @@ void Begin() {
     );
 
     for(int i = 0; i < NUM_TEXTURES; i++) {    
-        // allocating memory for the wall texture.
-        wallTexture[i] = (Uint32*) malloc( sizeof(Uint32) * (Uint32)TEX_WIDTH * (Uint32)TEX_HEIGHT );
+        // allocating memory for the wall texture (I don't think I need to do that as the png already allocate memory for the decoded thing)
+        // wallTexture[i] = (Uint32*) malloc( sizeof(Uint32) * (Uint32)TEX_WIDTH * (Uint32)TEX_HEIGHT );
 
         // load an external texture using the upng library to decode the file.
         pngTexture = upng_new_from_file(allTextures[i]);
@@ -157,6 +151,14 @@ void Begin() {
             if(upng_get_error(pngTexture) == UPNG_EOK) {
                 wallTexture[i] = (Uint32*) upng_get_buffer(pngTexture);
             }
+        }
+    }
+
+    pistolSprite = upng_new_from_file("./images/doom-pistol.png");
+    if(pistolSprite != NULL) {
+        upng_decode(pistolSprite);
+        if(upng_get_error(pistolSprite) == UPNG_EOK) {
+            pistolTexture = (Uint32*) upng_get_buffer(pistolSprite);
         }
     }
 }
@@ -233,6 +235,7 @@ void Update() {
     // Computing current DeltaTime
     float DeltaTime = (SDL_GetTicks() - TicksLastFrame) / 1000.0f;
     TicksLastFrame = SDL_GetTicks();
+    TimeSinceBeginning += DeltaTime;
 
     // Always remember to update game objects as a function of delta time
     MovePlayer(DeltaTime);
@@ -463,6 +466,29 @@ void Render() {
     RenderMap();
     RenderPlayer();
     RenderRays();
+
+    // Rendering the pistol here... just a nice thing...
+    SDL_Surface* pistolSurface = SDL_CreateRGBSurfaceWithFormatFrom(pistolTexture, 64, 64, 4 * 64, sizeof(Uint32) * 64, SDL_PIXELFORMAT_RGBA32);
+    SDL_Texture* myPistolTexture = SDL_CreateTextureFromSurface(renderer, pistolSurface);
+    SDL_FreeSurface(pistolSurface);
+    // TODO: Remove those magic numbers?!
+    SDL_Rect Myrect = {0, 0, 64, 64};
+
+    float xOffset = 0;
+    float yOffset = 0;
+    if(player.walkDirection != 0) {
+        xOffset = cos(TimeSinceBeginning * 5.0f);
+        yOffset = sin(TimeSinceBeginning * 10.0f);
+    }
+
+    SDL_Rect MyRect2 = {
+        (WINDOW_WIDTH / 2) - (64 * 4 / 2) + (xOffset * 32), 
+        (WINDOW_HEIGHT - (64 * 4)) + 32 - (yOffset * 32), 
+        64 * 4, 
+        64 * 4
+    };
+
+    SDL_RenderCopy(renderer, myPistolTexture, &Myrect, &MyRect2);
 
     SDL_RenderPresent(renderer);   
 }
