@@ -6,7 +6,7 @@
 #include "player.h"
 #include "ray.h"
 #include "mathaux.h"
-#include "textures.h"
+#include "upng/upng.h"
 
 const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1, 1, 1, 1},
@@ -35,7 +35,10 @@ int IsGameRunning = FALSE;
 int TicksLastFrame = 0;
 Uint32* colorBuffer = NULL;
 SDL_Texture* colorBufferTexture = NULL;
-Uint32* textures[NUM_TEXTURES];
+
+// Wall textures
+Uint32* wallTexture;
+upng_t* pngTexture;
 
 // ////////////////////////////////////
 // Functions
@@ -126,21 +129,24 @@ void Begin() {
     // create an sdl texture to display the color buffer
     colorBufferTexture = SDL_CreateTexture(
         renderer,
-        SDL_PIXELFORMAT_ARGB8888,
+        SDL_PIXELFORMAT_RGBA32,
         SDL_TEXTUREACCESS_STREAMING,
         WINDOW_WIDTH,
         WINDOW_HEIGHT
     );
 
-    // loading all of the textures from the textures.h
-    textures[0] = (Uint32*)REDBRICK_TEXTURE;
-    textures[1] = (Uint32*)PURPLESTONE_TEXTURE;
-    textures[2] = (Uint32*)MOSSYSTONE_TEXTURE;
-    textures[3] = (Uint32*)GRAYSTONE_TEXTURE;
-    textures[4] = (Uint32*)COLORSTONE_TEXTURE;
-    textures[5] = (Uint32*)BLUESTONE_TEXTURE;
-    textures[6] = (Uint32*)WOOD_TEXTURE;
-    textures[7] = (Uint32*)EAGLE_TEXTURE;
+    // allocating memory for the wall texture.
+    wallTexture = (Uint32*) malloc (sizeof(Uint32) * (Uint32)TEX_WIDTH * (Uint32)TEX_HEIGHT);
+
+    // load an external texture using the upng library to decode the file.
+    pngTexture = upng_new_from_file(REDBRICK_TEXTURE_FILEPATH);
+    if(pngTexture != NULL) {
+        upng_decode(pngTexture);
+        if(upng_get_error(pngTexture) == UPNG_EOK) {
+            wallTexture = (Uint32*) upng_get_buffer(pngTexture);
+        }
+    }
+
 }
 
 void ProcessInput() {
@@ -416,12 +422,13 @@ void Generate3DProjection() {
         }
 
         // get the correct texture ID number from the map content
-        int textureNumber = rays[i].wallHitContent - 1;
+        // int textureNumber = rays[i].wallHitContent - 1;
         for(int y = wallTopPixel; y < wallBottomPixel; y++) {
             // set the color of the wall based on the color from the texture
             int distanceFromTop = (y + (wallStripHeight / 2) - (WINDOW_HEIGHT / 2));
             float textureOffsetY = distanceFromTop * ((float)TEX_HEIGHT / (float)wallStripHeight);
-            Uint32 texelColor = textures[textureNumber][(TEX_WIDTH * (int)textureOffsetY) + (int)textureOffsetX];
+            // Uint32 texelColor = textures[textureNumber][(TEX_WIDTH * (int)textureOffsetY) + (int)textureOffsetX];
+            Uint32 texelColor = wallTexture[(TEX_WIDTH * (int)textureOffsetY) + (int)textureOffsetX];
             colorBuffer [(WINDOW_WIDTH * y) + i] = texelColor;
         }
 

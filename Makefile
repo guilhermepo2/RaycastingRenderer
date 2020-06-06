@@ -1,5 +1,5 @@
 CC = gcc
-SOURCE = ./src/main.c
+SOURCE = ./src/main.c ./src/upng/upng.c
 OUTPUT = raycast
 WINDOWS_LINKER_FLAGS = -lmingw32 -lSDL2main
 SDL_LINKER_FLAGS = -lSDL2 -lm
