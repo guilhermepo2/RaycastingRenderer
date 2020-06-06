@@ -20,3 +20,7 @@
 
 #define FPS 30
 #define FRAME_TIME (1000 / FPS)
+
+#define TEX_WIDTH 64
+#define TEX_HEIGHT 64
+#define NUM_TEXTURES 8

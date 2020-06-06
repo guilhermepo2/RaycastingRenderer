@@ -6,21 +6,22 @@
 #include "player.h"
 #include "ray.h"
 #include "mathaux.h"
+#include "textures.h"
 
 const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1, 1, 1, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 1},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+    {1, 0, 0, 0, 2, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 5},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 5},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 5},
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 5, 5, 5}
 };
 
 Player player;
@@ -34,6 +35,7 @@ int IsGameRunning = FALSE;
 int TicksLastFrame = 0;
 Uint32* colorBuffer = NULL;
 SDL_Texture* colorBufferTexture = NULL;
+Uint32* textures[NUM_TEXTURES];
 
 // ////////////////////////////////////
 // Functions
@@ -129,6 +131,16 @@ void Begin() {
         WINDOW_WIDTH,
         WINDOW_HEIGHT
     );
+
+    // loading all of the textures from the textures.h
+    textures[0] = (Uint32*)REDBRICK_TEXTURE;
+    textures[1] = (Uint32*)PURPLESTONE_TEXTURE;
+    textures[2] = (Uint32*)MOSSYSTONE_TEXTURE;
+    textures[3] = (Uint32*)GRAYSTONE_TEXTURE;
+    textures[4] = (Uint32*)COLORSTONE_TEXTURE;
+    textures[5] = (Uint32*)BLUESTONE_TEXTURE;
+    textures[6] = (Uint32*)WOOD_TEXTURE;
+    textures[7] = (Uint32*)EAGLE_TEXTURE;
 }
 
 void ProcessInput() {
@@ -384,12 +396,38 @@ void Generate3DProjection() {
 
         int wallTopPixel = (WINDOW_HEIGHT / 2) - (wallStripHeight / 2);
         wallTopPixel = (wallTopPixel < 0) ? 0 : wallTopPixel;
+
         int wallBottomPixel = (WINDOW_HEIGHT / 2) + (wallStripHeight / 2);
         wallBottomPixel = (wallBottomPixel > WINDOW_HEIGHT) ? WINDOW_HEIGHT : wallBottomPixel;
 
+        // set the color for the ceiling
+        for(int y = 0; y < wallTopPixel; y++) {
+            colorBuffer [(WINDOW_WIDTH * y) + i] = 0xFF333333;
+        }
+
         // Render the wall from wallTopPixel to WallBottomPixel
+        float textureOffsetX;
+        if(rays[i].wasHitVertical) {
+            // perform offset for the vertical hit
+            textureOffsetX = (int)rays[i].wallHitY % TILE_SIZE;
+        } else {
+            // perform offset for the horizontal hit
+            textureOffsetX = (int)rays[i].wallHitX % TILE_SIZE;
+        }
+
+        // get the correct texture ID number from the map content
+        int textureNumber = rays[i].wallHitContent - 1;
         for(int y = wallTopPixel; y < wallBottomPixel; y++) {
-            colorBuffer [(WINDOW_WIDTH * y) + i] = rays[i].wasHitVertical ? 0xFFFFFFFF : 0xFFCCCCCC;
+            // set the color of the wall based on the color from the texture
+            int distanceFromTop = (y + (wallStripHeight / 2) - (WINDOW_HEIGHT / 2));
+            float textureOffsetY = distanceFromTop * ((float)TEX_HEIGHT / (float)wallStripHeight);
+            Uint32 texelColor = textures[textureNumber][(TEX_WIDTH * (int)textureOffsetY) + (int)textureOffsetX];
+            colorBuffer [(WINDOW_WIDTH * y) + i] = texelColor;
+        }
+
+        // set the color for the ground
+        for(int y = wallBottomPixel; y < WINDOW_HEIGHT; y++) {
+            colorBuffer [(WINDOW_WIDTH * y) + i] = 0xFF777777;
         }
     }
 }
@@ -448,14 +486,6 @@ void RenderPlayer() {
     };
 
     SDL_RenderFillRect(renderer, &playerRect);
-
-    SDL_RenderDrawLine(
-        renderer, 
-        player.x * MINIMAP_SCALE_FACTOR, 
-        player.y * MINIMAP_SCALE_FACTOR, 
-        player.x + cos(player.rotationAngle) * 40 * MINIMAP_SCALE_FACTOR, 
-        player.y + sin(player.rotationAngle) * 40 * MINIMAP_SCALE_FACTOR
-        );
 }
 
 void RenderRays() {
