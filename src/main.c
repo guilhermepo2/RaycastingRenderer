@@ -215,10 +215,6 @@ void CastAllRays() {
     for(int rayID = 0; rayID < NUM_RAYS; rayID++) {
         CastRay(rayAngle, rayID);
         rayAngle += (FOV_ANGLE / NUM_RAYS);
-
-        if(rays[rayID].wallHitY > (WINDOW_HEIGHT - TILE_SIZE)) {
-            printf("something wrong here - rayID: %d - rayAngle: %.2f\n", rayID, rayAngle);
-        }
     }
 }
 
@@ -402,10 +398,9 @@ void Render() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     
-    // Generate3DProjection();
-
-    // RenderColorBuffer();
-    // ClearColorBuffer(0xFF000000);
+    Generate3DProjection();
+    RenderColorBuffer();
+    ClearColorBuffer(0xFF000000);
 
     // display the minimap
     RenderMap();
